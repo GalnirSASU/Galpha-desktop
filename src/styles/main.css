@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-base-black text-white font-sans overflow-hidden;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-base-dark;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-base-light rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-base-lighter;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-base-darker/60 backdrop-blur-xl rounded-2xl p-6 border border-base-light/20 shadow-glow;
+  }
+
+  .btn-primary {
+    @apply px-6 py-3 bg-gradient-to-r from-accent-primary to-accent-secondary hover:shadow-glow-lg rounded-xl font-semibold transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] text-white;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-base-medium hover:bg-base-light border border-base-light/20 hover:border-accent-primary/30 rounded-xl font-semibold transition-all duration-200 text-white;
+  }
+
+  .glassmorphism {
+    @apply bg-base-darker/60 backdrop-blur-2xl border border-base-light/20;
+  }
+
+  .glow-text {
+    text-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+  }
+}
+
+/* Animation delays */
+.animate-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animate-delay-2000 {
+  animation-delay: 2s;
+}

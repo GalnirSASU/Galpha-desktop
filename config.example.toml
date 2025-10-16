@@ -1,0 +1,30 @@
+# Galpha Desktop Configuration File
+# Copy this file to config.toml and fill in your values
+
+[riot_api]
+# Get your API key from: https://developer.riotgames.com/
+api_key = "RGAPI-YOUR-KEY-HERE"
+
+# Your region: euw1, na1, kr, etc.
+region = "euw1"
+
+[app]
+# Auto-start monitoring when app launches
+auto_start = true
+
+# Refresh interval in seconds (how often to check for new matches)
+refresh_interval = 30
+
+# Maximum number of matches to fetch initially
+initial_match_count = 20
+
+[database]
+# Leave empty to use default location (~/Library/Application Support/galpha/galpha.db on macOS)
+# Or specify a custom path
+path = ""
+
+[features]
+# Enable experimental features
+enable_overlay = false
+enable_notifications = true
+enable_analytics = true
