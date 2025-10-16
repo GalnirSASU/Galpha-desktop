@@ -37,6 +37,8 @@ src-tauri/target
 
 # Config (contains API keys)
 config.toml
+.env
+.env.local
 
 # OS
 .DS_Store
