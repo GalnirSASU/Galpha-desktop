@@ -174,8 +174,8 @@ cat .env | grep VITE_RIOT_API_KEY
 
 Votre fichier `.env` contient :
 ```env
-VITE_DISCORD_CLIENT_ID=1427988461352124477
-VITE_RIOT_API_KEY=RGAPI-81803828-422d-4cdd-88a0-15210964582f
+VITE_DISCORD_CLIENT_ID=your_discord_client_id
+VITE_RIOT_API_KEY=your_riot_api_key
 ```
 
 ⚠️ **Note**: Les clés API Riot de développement expirent après 24h. Pensez à les renouveler sur https://developer.riotgames.com/
