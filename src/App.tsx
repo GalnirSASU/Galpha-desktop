@@ -4,6 +4,7 @@ import WindowTitleBar from './components/WindowTitleBar';
 import LoginScreen from './components/LoginScreen';
 import MainDashboard from './components/MainDashboard';
 import { UpdateChecker } from './components/UpdateChecker';
+import { ApiKeySetup } from './components/ApiKeySetup';
 import { useRiotApi, useLoLDetection } from './hooks';
 import type { DiscordUser } from './types';
 
@@ -14,7 +15,7 @@ function App() {
   console.log('[App] Rendering App component');
 
   // Initialize Riot API
-  const { isLoading: isApiLoading, error: apiError } = useRiotApi();
+  const { isLoading: isApiLoading, error: apiError, reinitialize } = useRiotApi();
   console.log('[App] Riot API state:', { isApiLoading, apiError });
 
   // Detect League of Legends and fetch summoner
@@ -42,7 +43,12 @@ function App() {
     );
   }
 
-  // Show error if API failed to initialize
+  // Show API key setup if needed
+  if (apiError && apiError.includes('not configured')) {
+    return <ApiKeySetup onApiKeySet={reinitialize} />;
+  }
+
+  // Show error if API failed to initialize (other errors)
   if (apiError) {
     return (
       <div className="min-h-screen bg-base-black flex items-center justify-center px-6">

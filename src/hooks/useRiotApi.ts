@@ -23,11 +23,25 @@ export function useRiotApi(initialRegion: Region = 'euw1'): UseRiotApiReturn {
     setError(null);
 
     try {
-      const apiKey = import.meta.env.VITE_RIOT_API_KEY;
+      // Try to get API key from database first
+      let apiKey: string | null = null;
 
-      if (!apiKey || apiKey === 'your_riot_api_key_here') {
-        const errorMsg =
-          'Riot API key not configured. Please set VITE_RIOT_API_KEY in your .env file';
+      try {
+        apiKey = await invoke<string | null>('get_api_key');
+      } catch (dbErr) {
+        logger.warn('Failed to get API key from database', dbErr);
+      }
+
+      // Fallback to environment variable for development
+      if (!apiKey) {
+        const envKey = import.meta.env.VITE_RIOT_API_KEY;
+        if (envKey && envKey !== 'your_riot_api_key_here') {
+          apiKey = envKey;
+        }
+      }
+
+      if (!apiKey) {
+        const errorMsg = 'Riot API key not configured';
         logger.error(errorMsg);
         setError(errorMsg);
         setIsLoading(false);

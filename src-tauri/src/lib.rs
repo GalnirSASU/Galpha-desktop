@@ -337,6 +337,46 @@ async fn discord_login(client_id: String) -> Result<DiscordUser, String> {
     Ok(user)
 }
 
+// Get API key from database
+#[tauri::command]
+async fn get_api_key(state: State<'_, AppState>) -> Result<Option<String>, String> {
+    let db_lock = state.db.lock().await;
+    let db = db_lock.as_ref().ok_or("Database not initialized")?;
+
+    let result = sqlx::query_as::<_, (String,)>(
+        "SELECT value FROM settings WHERE key = 'riot_api_key'"
+    )
+    .fetch_optional(db.pool())
+    .await
+    .map_err(|e| format!("Failed to get API key: {}", e))?;
+
+    Ok(result.map(|(value,)| value))
+}
+
+// Save API key to database
+#[tauri::command]
+async fn set_api_key(state: State<'_, AppState>, api_key: String) -> Result<(), String> {
+    let db_lock = state.db.lock().await;
+    let db = db_lock.as_ref().ok_or("Database not initialized")?;
+
+    let now = Utc::now().timestamp();
+
+    sqlx::query(
+        "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('riot_api_key', ?, ?)"
+    )
+    .bind(&api_key)
+    .bind(now)
+    .execute(db.pool())
+    .await
+    .map_err(|e| format!("Failed to save API key: {}", e))?;
+
+    // Update the in-memory API key
+    let mut api_key_lock = state.api_key.lock().await;
+    *api_key_lock = Some(api_key);
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     init_logging();
@@ -372,6 +412,8 @@ pub fn run() {
             fetch_match_details_cached,
             get_cached_matches,
             discord_login,
+            get_api_key,
+            set_api_key,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

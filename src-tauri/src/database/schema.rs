@@ -173,6 +173,19 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        // Create settings table for API keys and configuration
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at INTEGER NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
         debug!("Database migrations completed");
 
         Ok(())
