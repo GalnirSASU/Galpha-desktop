@@ -24,16 +24,28 @@ impl LolDetector {
         sys.refresh_processes(ProcessesToUpdate::All, true);
 
         // Check for common LoL process names across platforms
-        let lol_processes = ["LeagueClient", "LeagueClientUx", "RiotClientUx", "Riot Client"];
+        let lol_processes = [
+            "LeagueClient",
+            "LeagueClientUx",
+            "League of Legends",
+            "RiotClientUx",
+            "Riot Client",
+            "RiotClientServices",
+            "LeagueOfLegends",
+        ];
 
         for process in sys.processes().values() {
-            let process_name = process.name().to_string_lossy();
-            if lol_processes.iter().any(|&name| process_name.contains(name)) {
-                info!("Found League of Legends process: {}", process_name);
-                return true;
+            let process_name = process.name().to_string_lossy().to_lowercase();
+
+            for &lol_name in &lol_processes {
+                if process_name.contains(&lol_name.to_lowercase()) {
+                    info!("Found League of Legends process: {} (matched: {})", process.name().to_string_lossy(), lol_name);
+                    return true;
+                }
             }
         }
 
+        debug!("League of Legends not detected in {} running processes", sys.processes().len());
         false
     }
 
