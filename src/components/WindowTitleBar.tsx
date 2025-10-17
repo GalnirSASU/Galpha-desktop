@@ -15,14 +15,10 @@ export default function WindowTitleBar() {
     appWindow.close();
   };
 
-  const handleDragStart = () => {
-    appWindow.startDragging();
-  };
-
   return (
     <div
-      className="fixed top-0 left-0 right-0 h-8 bg-base-black border-b border-[#1a1a27] z-50 flex items-center justify-between px-4"
-      onMouseDown={handleDragStart}
+      data-tauri-drag-region
+      className="fixed top-0 left-0 right-0 h-8 bg-base-black border-b border-[#1a1a27] z-50 flex items-center justify-between px-4 select-none"
     >
       {/* Left - App Title */}
       <div className="flex items-center gap-2 pointer-events-none">
@@ -34,7 +30,7 @@ export default function WindowTitleBar() {
       <div className="flex-1"></div>
 
       {/* Right - Window Controls */}
-      <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-2 pointer-events-auto">
         <button
           onClick={handleMinimize}
           className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-base-light transition-colors group"
