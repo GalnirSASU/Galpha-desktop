@@ -340,6 +340,17 @@ async fn discord_login(client_id: String) -> Result<DiscordUser, String> {
 // Get API key from database
 #[tauri::command]
 async fn get_api_key(state: State<'_, AppState>) -> Result<Option<String>, String> {
+    // Ensure database is initialized
+    {
+        let mut db_lock = state.db.lock().await;
+        if db_lock.is_none() {
+            let database = Database::new(None).await
+                .map_err(|e| format!("Failed to initialize database: {}", e))?;
+            *db_lock = Some(database);
+            info!("Database initialized for API key retrieval");
+        }
+    }
+
     let db_lock = state.db.lock().await;
     let db = db_lock.as_ref().ok_or("Database not initialized")?;
 
@@ -356,6 +367,17 @@ async fn get_api_key(state: State<'_, AppState>) -> Result<Option<String>, Strin
 // Save API key to database
 #[tauri::command]
 async fn set_api_key(state: State<'_, AppState>, api_key: String) -> Result<(), String> {
+    // Ensure database is initialized
+    {
+        let mut db_lock = state.db.lock().await;
+        if db_lock.is_none() {
+            let database = Database::new(None).await
+                .map_err(|e| format!("Failed to initialize database: {}", e))?;
+            *db_lock = Some(database);
+            info!("Database initialized for API key storage");
+        }
+    }
+
     let db_lock = state.db.lock().await;
     let db = db_lock.as_ref().ok_or("Database not initialized")?;
 
