@@ -65,6 +65,13 @@ impl LcuConnector {
         #[cfg(target_os = "macos")]
         let lockfile_path = "/Applications/League of Legends.app/Contents/LoL/lockfile".to_string();
 
+        #[cfg(target_os = "linux")]
+        let lockfile_path = {
+            let home = std::env::var("HOME")
+                .context("Could not find HOME directory")?;
+            format!("{}/.wine/drive_c/Riot Games/League of Legends/lockfile", home)
+        };
+
         let content = fs::read_to_string(&lockfile_path)
             .context("Failed to read lockfile. Is League of Legends running?")?;
 
