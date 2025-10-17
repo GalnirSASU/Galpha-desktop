@@ -65,7 +65,10 @@ export function UpdateChecker() {
             setDownloadProgress(0);
             break;
           case 'Progress':
-            const progress = Math.round((event.data.downloaded / event.data.contentLength) * 100);
+            // Use chunkLength as total if contentLength doesn't exist
+            const total = (event.data as any).contentLength || (event.data as any).chunkLength || 1;
+            const downloaded = (event.data as any).downloaded || 0;
+            const progress = Math.round((downloaded / total) * 100);
             setDownloadProgress(progress);
             console.log(`Progression: ${progress}%`);
             break;

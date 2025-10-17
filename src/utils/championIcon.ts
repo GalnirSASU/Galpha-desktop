@@ -36,10 +36,10 @@ export function getChampionIconUrl(championName: string, version: string = LATES
 /**
  * Get champion icon URL with fallback to champion ID
  * @param championName - The champion name
- * @param championId - The champion ID as fallback
+ * @param _championId - The champion ID as fallback (currently unused)
  * @returns URL to the champion icon
  */
-export function getChampionIconUrlWithFallback(championName: string, championId?: number): string {
+export function getChampionIconUrlWithFallback(championName: string, _championId?: number): string {
   // Try with champion name first
   return getChampionIconUrl(championName);
 }
@@ -50,7 +50,7 @@ export function getChampionIconUrlWithFallback(championName: string, championId?
 export function handleChampionIconError(
   event: React.SyntheticEvent<HTMLImageElement, Event>,
   championName: string,
-  championId?: number
+  _championId?: number
 ): void {
   const img = event.currentTarget;
   const currentSrc = img.src;

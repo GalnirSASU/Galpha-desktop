@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import TopNavigation from './TopNavigation';
 import OnboardingView from './OnboardingView';
@@ -303,7 +303,7 @@ export default function MainDashboard({ isLolRunning, currentSummoner }: MainDas
     let totalDuration = 0;
     let totalKillParticipation = 0;
     let gamesWithoutDeath = 0;
-    let totalObjectives = 0;
+    // let totalObjectives = 0; // TODO: implement objectives tracking
 
     matches.forEach((match) => {
       const playerData = match.participants.find((p) => p.puuid === currentAccount.puuid);
@@ -638,7 +638,7 @@ export default function MainDashboard({ isLolRunning, currentSummoner }: MainDas
                                 <div className="absolute inset-0 bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                               </div>
                               <div className="absolute -bottom-1 -right-1 bg-base-dark border border-base-light rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-white">
-                                {playerData?.champLevel || 1}
+                                {(playerData as any)?.champLevel || 1}
                               </div>
                             </div>
 
