@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import TopNavigation from './TopNavigation';
 import OnboardingView from './OnboardingView';
+import ProgressionChart from './ProgressionChart';
 import { useMatchHistory } from '../hooks/useMatchHistory';
-import { getChampionIconUrl, handleChampionIconError } from '../utils/championIcon';
+import { getChampionIconUrl, handleChampionIconError, normalizeChampionName } from '../utils/championIcon';
 import type { Summoner, SavedAccount, DiscordUser, SummonerDetails, RankedStats } from '../types';
 
 interface MainDashboardProps {
@@ -406,35 +407,131 @@ export default function MainDashboard({ isLolRunning, currentSummoner }: MainDas
     );
   }
 
+  // Handler pour la recherche de joueur
+  const handlePlayerSearch = async (gameName: string, tagLine: string) => {
+    console.log('Searching for player:', gameName, tagLine);
+    setIsLoadingAccount(true);
+    setAccountError(null);
+
+    try {
+      // D'abord, récupérer le compte via l'API Riot pour obtenir le vrai PUUID
+      const accountData = await invoke<{ puuid: string; gameName: string; tagLine: string }>(
+        'get_account_by_riot_id',
+        {
+          gameName,
+          tagLine,
+        }
+      );
+
+      console.log('Found account:', accountData);
+
+      // Récupérer les informations du summoner
+      const summonerData = await invoke<SummonerDetails>('get_summoner_by_puuid', {
+        puuid: accountData.puuid,
+      });
+
+      console.log('Summoner data:', summonerData);
+
+      // Récupérer les stats ranked (uniquement si on a un ID)
+      let rankedData: RankedStats[] = [];
+      if (summonerData.id) {
+        rankedData = await invoke<RankedStats[]>('get_ranked_stats', {
+          summonerId: summonerData.id,
+        });
+      }
+
+      console.log('Ranked data:', rankedData);
+
+      // Trouver les stats de la queue Solo/Duo
+      const soloQueue = Array.isArray(rankedData)
+        ? rankedData.find((queue) => queue.queueType === 'RANKED_SOLO_5x5')
+        : null;
+
+      // Créer l'objet SavedAccount avec les vraies données
+      setSelectedAccount({
+        puuid: accountData.puuid,
+        gameName: accountData.gameName,
+        tagLine: accountData.tagLine,
+        summonerLevel: summonerData.summonerLevel,
+        profileIconId: summonerData.profileIconId,
+        tier: soloQueue?.tier || '',
+        rank: soloQueue?.rank || '',
+        lp: soloQueue?.leaguePoints || 0,
+        wins: soloQueue?.wins || 0,
+        losses: soloQueue?.losses || 0,
+        lastPlayed: new Date().toISOString(),
+      });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('Failed to search for player:', error);
+      setAccountError(errorMsg);
+    } finally {
+      setIsLoadingAccount(false);
+    }
+  };
+
+  // Handler pour retourner au compte principal (LCU)
+  const handleReturnToMainAccount = () => {
+    setSelectedAccount(null);
+    // Le useEffect rechargera automatiquement le compte LCU
+  };
+
+  // Handler pour afficher le sélecteur de compte
+  const handleAccountSwitch = () => {
+    // Pour l'instant, retournons à l'onboarding pour choisir un compte
+    setSelectedAccount(null);
+    setLolClientAccount(null);
+  };
+
   return (
     <div className="h-screen overflow-hidden bg-base-black flex flex-col">
       {/* Top Navigation */}
-      <TopNavigation currentView={currentView} onViewChange={setCurrentView} />
+      <TopNavigation
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        onPlayerSearch={handlePlayerSearch}
+        currentAccount={currentAccount ? {
+          gameName: currentAccount.gameName,
+          tagLine: currentAccount.tagLine,
+          profileIconId: currentAccount.profileIconId
+        } : null}
+        onAccountSwitch={handleAccountSwitch}
+        onReturnToMainAccount={handleReturnToMainAccount}
+        showReturnButton={!!selectedAccount && !!lolClientAccount}
+      />
 
       {/* Main Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden pt-16">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pt-24">
         <div className="pb-8">
         {/* Hero Section - Summoner Info */}
         <div className="relative bg-gradient-to-br from-base-dark via-base-darker to-base-black border-b border-base-medium shadow-2xl overflow-hidden">
-          {/* Background Image */}
-          <div className="absolute inset-0 opacity-20">
+          {/* Background Image - Use most played champion or default */}
+          <div className="absolute inset-0 opacity-25">
             <img
-              src="https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Arcadia_0.jpg"
+              src={championStats.length > 0
+                ? `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${normalizeChampionName(championStats[0].name)}_0.jpg`
+                : "https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Yasuo_0.jpg"
+              }
               alt="Champion"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-top"
+              style={{ objectPosition: '50% 30%' }}
+              onError={(e) => {
+                // Fallback to a safe default splash art if loading fails
+                e.currentTarget.src = "https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Yasuo_0.jpg";
+              }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-base-black via-transparent to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-base-black via-base-black/60 to-transparent"></div>
           </div>
 
           {/* Animated gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-accent-primary/5 via-transparent to-accent-secondary/5 animate-pulse-slow"></div>
 
-          <div className="relative z-10 max-w-[1600px] mx-auto px-6 py-8">
-            <div className="flex items-center justify-between gap-6">
+          <div className="relative z-10 max-w-[1600px] mx-auto px-8 py-5">
+            <div className="flex items-center justify-between gap-8">
               {/* Profile Section */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-5">
                 <div className="relative">
-                  <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-accent-primary to-accent-secondary p-1 shadow-gold">
+                  <div className="w-[88px] h-[88px] rounded-xl bg-gradient-to-br from-accent-primary to-accent-secondary p-1 shadow-gold">
                     <div className="w-full h-full rounded-lg bg-base-dark flex items-center justify-center overflow-hidden">
                       <img
                         src={`https://ddragon.leagueoflegends.com/cdn/14.1.1/img/profileicon/${currentAccount?.profileIconId || 29}.png`}
@@ -443,38 +540,38 @@ export default function MainDashboard({ isLolRunning, currentSummoner }: MainDas
                       />
                     </div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-accent-primary to-accent-secondary text-white px-2 py-0.5 rounded-md text-xs font-bold shadow-lg">
+                  <div className="absolute -bottom-1.5 -right-1.5 bg-gradient-to-r from-accent-primary to-accent-secondary text-white px-2.5 py-1 rounded-md text-xs font-bold shadow-lg">
                     {currentAccount?.summonerLevel || 0}
                   </div>
                 </div>
 
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h1 className="text-3xl font-black text-white">
+                  <div className="flex items-center gap-2.5 mb-1.5">
+                    <h1 className="text-3xl font-black text-white leading-tight">
                       {currentAccount?.gameName || 'Unknown'}
                     </h1>
-                    <span className="text-xl text-gray-400 font-semibold">
+                    <span className="text-xl text-gray-400 font-semibold leading-tight">
                       #{currentAccount?.tagLine || '---'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     {currentAccount?.tier && currentAccount?.rank && currentAccount.tier !== '' ? (
                       <>
-                        <div className="px-3 py-1 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/50 rounded-lg">
+                        <div className="px-3 py-1.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/50 rounded-lg">
                           <span className="text-sm text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-400 font-bold uppercase tracking-wide">
                             {currentAccount.tier} {currentAccount.rank}
                           </span>
                         </div>
-                        <div className="h-4 w-px bg-gray-600"></div>
+                        <div className="h-5 w-px bg-gray-600/50"></div>
                         <span className="text-sm text-yellow-400 font-bold">{currentAccount.lp} LP</span>
-                        <div className="h-4 w-px bg-gray-600"></div>
+                        <div className="h-5 w-px bg-gray-600/50"></div>
                         <span className="text-sm text-white font-bold">{winrate}% WR</span>
                         <span className="text-xs text-gray-400 font-medium">
                           ({currentAccount.wins}W - {currentAccount.losses}L)
                         </span>
                       </>
                     ) : (
-                      <div className="px-3 py-1 bg-gray-700/30 border border-gray-600/50 rounded-lg">
+                      <div className="px-3 py-1.5 bg-gray-700/30 border border-gray-600/50 rounded-lg">
                         <span className="text-sm text-gray-400 font-semibold">Non classé cette saison</span>
                       </div>
                     )}
@@ -483,11 +580,11 @@ export default function MainDashboard({ isLolRunning, currentSummoner }: MainDas
               </div>
 
               {/* Filter Buttons */}
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-2.5 flex-shrink-0">
                 {['Tout', 'Solo/Duo', 'Flex', 'ARAM'].map((filter, idx) => (
                   <button
                     key={filter}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 border-2 ${
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 border-2 ${
                       idx === 0
                         ? 'bg-gradient-to-r from-accent-primary to-accent-secondary text-white border-accent-primary shadow-lg shadow-accent-primary/30 scale-105'
                         : 'bg-base-medium/50 text-gray-400 border-base-light hover:bg-base-light hover:text-white hover:border-accent-primary/50 hover:scale-105'
@@ -559,6 +656,22 @@ export default function MainDashboard({ isLolRunning, currentSummoner }: MainDas
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Progression Charts */}
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-base-dark to-base-darker rounded-2xl border border-base-medium p-5 shadow-lg hover:border-accent-primary/30 transition-all duration-300">
+              <ProgressionChart matches={matches} puuid={currentAccount?.puuid || ''} statType="kda" />
+            </div>
+            <div className="bg-gradient-to-br from-base-dark to-base-darker rounded-2xl border border-base-medium p-5 shadow-lg hover:border-accent-primary/30 transition-all duration-300">
+              <ProgressionChart matches={matches} puuid={currentAccount?.puuid || ''} statType="winrate" />
+            </div>
+            <div className="bg-gradient-to-br from-base-dark to-base-darker rounded-2xl border border-base-medium p-5 shadow-lg hover:border-accent-primary/30 transition-all duration-300">
+              <ProgressionChart matches={matches} puuid={currentAccount?.puuid || ''} statType="cs" />
+            </div>
+            <div className="bg-gradient-to-br from-base-dark to-base-darker rounded-2xl border border-base-medium p-5 shadow-lg hover:border-accent-primary/30 transition-all duration-300">
+              <ProgressionChart matches={matches} puuid={currentAccount?.puuid || ''} statType="damage" />
+            </div>
           </div>
 
           {/* Two Column Layout */}

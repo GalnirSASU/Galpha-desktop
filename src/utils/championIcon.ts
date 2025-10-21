@@ -3,7 +3,7 @@
  * Uses the latest version and handles special champion name cases
  */
 
-const LATEST_VERSION = '15.1.1'; // Update this regularly or fetch from API
+const LATEST_VERSION = '15.20.1'; // Update this regularly or fetch from API
 
 // Map of champion names that have different internal names
 const CHAMPION_NAME_MAP: Record<string, string> = {
@@ -15,6 +15,7 @@ const CHAMPION_NAME_MAP: Record<string, string> = {
   'Smolder': 'Smolder',
   'Aurora': 'Aurora',
   'Mel': 'Mel',
+  'Yunara': 'Yunara',  // Patch 15.1
   // Special cases for API inconsistencies
   'Nunu': 'Nunu',
   'LeBlanc': 'Leblanc',
