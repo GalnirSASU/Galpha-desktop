@@ -3,7 +3,7 @@ mod riot_api;
 mod database;
 mod discord;
 
-use lcu::{LolDetector, LcuConnector};
+use lcu::{LolDetector, LcuConnector, ActiveGameInfo};
 use riot_api::{RiotApiClient, MatchDetails};
 use database::{Database, DbSummoner, DbMatch, PlayerStats, RankedStatsCache, MatchCacheMetadata};
 use discord::{DiscordOAuth, DiscordUser};
@@ -45,6 +45,17 @@ async fn get_current_summoner(_state: State<'_, AppState>) -> Result<serde_json:
         .map_err(|e| format!("Failed to get summoner: {}", e))?;
 
     Ok(serde_json::to_value(summoner).unwrap())
+}
+
+#[tauri::command]
+async fn get_active_game(_state: State<'_, AppState>) -> Result<Option<ActiveGameInfo>, String> {
+    let connector = LcuConnector::new().await
+        .map_err(|e| format!("Failed to connect to LCU: {}", e))?;
+
+    let active_game = connector.get_active_game().await
+        .map_err(|e| format!("Failed to get active game: {}", e))?;
+
+    Ok(active_game)
 }
 
 #[tauri::command]
@@ -227,6 +238,29 @@ async fn get_ranked_stats(
     let client = RiotApiClient::new(api_key, region);
     let ranked_stats = client.get_ranked_stats(&summoner_id).await
         .map_err(|e| format!("Failed to fetch ranked stats: {}", e))?;
+
+    Ok(serde_json::to_value(ranked_stats).unwrap())
+}
+
+#[tauri::command]
+async fn get_ranked_stats_by_puuid(
+    state: State<'_, AppState>,
+    puuid: String,
+) -> Result<serde_json::Value, String> {
+    // Get API key and region
+    let key_lock = state.api_key.lock().await;
+    let api_key = key_lock.as_ref()
+        .ok_or("Riot API client not initialized")?.clone();
+    drop(key_lock);
+
+    let region_lock = state.region.lock().await;
+    let region = region_lock.clone();
+    drop(region_lock);
+
+    // Create client and fetch ranked stats by PUUID
+    let client = RiotApiClient::new(api_key, region);
+    let ranked_stats = client.get_ranked_stats_by_puuid(&puuid).await
+        .map_err(|e| format!("Failed to fetch ranked stats by PUUID: {}", e))?;
 
     Ok(serde_json::to_value(ranked_stats).unwrap())
 }
@@ -417,10 +451,12 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             check_lol_running,
             get_current_summoner,
+            get_active_game,
             initialize_database,
             save_summoner,
             get_player_stats,
@@ -430,6 +466,7 @@ pub fn run() {
             get_account_by_riot_id,
             get_summoner_by_puuid,
             get_ranked_stats,
+            get_ranked_stats_by_puuid,
             get_match_details,
             fetch_match_details_cached,
             get_cached_matches,

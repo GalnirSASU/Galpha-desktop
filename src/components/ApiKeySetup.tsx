@@ -35,8 +35,8 @@ export function ApiKeySetup({ onApiKeySet }: ApiKeySetupProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-dark via-base-medium to-base-dark flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-base-medium/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-base-light/20">
+    <div className="min-h-screen tiled-background flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-base-darker/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-base-light/20">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-accent-primary to-accent-secondary rounded-full flex items-center justify-center mx-auto mb-4">

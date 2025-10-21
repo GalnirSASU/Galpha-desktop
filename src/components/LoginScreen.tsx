@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import Logo from './Logo';
 
 interface LoginScreenProps {
   onLogin: (discordUser: DiscordUser) => void;
@@ -44,10 +45,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-base-black relative overflow-hidden flex items-center justify-center">
-      {/* Animated background mesh gradient */}
-      <div className="absolute inset-0 bg-gradient-mesh opacity-40" />
-
+    <div className="min-h-screen tiled-background relative overflow-hidden flex items-center justify-center">
       {/* Animated orbs */}
       <div className="absolute top-20 left-20 w-96 h-96 bg-accent-primary/20 rounded-full blur-3xl animate-pulse-slow" />
       <div className="absolute bottom-20 right-20 w-96 h-96 bg-accent-secondary/20 rounded-full blur-3xl animate-pulse-slow delay-1000" />
@@ -57,10 +55,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         <div className="bg-base-darker/60 backdrop-blur-2xl rounded-2xl border border-base-light/20 p-8 shadow-glow-lg">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center mb-4 shadow-glow animate-scale-in">
-              <span className="text-white font-bold text-4xl">G</span>
+            <div className="mb-6 animate-scale-in">
+              <Logo size="xl" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2 font-display">Galpha</h1>
             <p className="text-base-lighter text-sm">League of Legends Premium Launcher</p>
           </div>
 

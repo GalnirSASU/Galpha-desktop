@@ -52,6 +52,7 @@ impl RiotApiClient {
 
         for attempt in 0..MAX_RETRIES {
             debug!("Making request to {} (attempt {}/{})", request_name, attempt + 1, MAX_RETRIES);
+            debug!("Request URL: {}", url);
 
             let response = self
                 .client
@@ -59,7 +60,7 @@ impl RiotApiClient {
                 .header("X-Riot-Token", &self.api_key)
                 .send()
                 .await
-                .context("Failed to send request to Riot API")?;
+                .context(format!("Failed to send request to Riot API for {} - URL: {}", request_name, url))?;
 
             let status = response.status();
 
@@ -210,7 +211,7 @@ impl RiotApiClient {
         Ok(summoner)
     }
 
-    /// Get ranked stats for a summoner
+    /// Get ranked stats for a summoner by summoner ID
     pub async fn get_ranked_stats(&self, summoner_id: &str) -> Result<Vec<serde_json::Value>> {
         let url = format!(
             "https://{}.api.riotgames.com/lol/league/v4/entries/by-summoner/{}",
@@ -225,6 +226,28 @@ impl RiotApiClient {
             .json()
             .await
             .context("Failed to parse ranked stats")?;
+
+        Ok(stats)
+    }
+
+    /// Get ranked stats for a summoner by PUUID
+    /// This uses the newer /entries/by-puuid endpoint that doesn't require summoner ID
+    pub async fn get_ranked_stats_by_puuid(&self, puuid: &str) -> Result<Vec<serde_json::Value>> {
+        let url = format!(
+            "https://{}.api.riotgames.com/lol/league/v4/entries/by-puuid/{}",
+            self.region, puuid
+        );
+
+        debug!("Fetching ranked stats for PUUID: {}", puuid);
+
+        let response = self.make_request_with_retry(&url, "get_ranked_stats_by_puuid").await?;
+
+        let stats = response
+            .json()
+            .await
+            .context("Failed to parse ranked stats")?;
+
+        info!("Retrieved ranked stats for PUUID: {}", puuid);
 
         Ok(stats)
     }

@@ -3,14 +3,16 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import WindowTitleBar from './components/WindowTitleBar';
 import LoginScreen from './components/LoginScreen';
 import MainDashboard from './components/MainDashboard';
+import LiveGameNotification from './components/LiveGameNotification';
 import { UpdateChecker } from './components/UpdateChecker';
 import { ApiKeySetup } from './components/ApiKeySetup';
-import { useRiotApi, useLoLDetection } from './hooks';
+import { useRiotApi, useLoLDetection, useLiveGameDetection } from './hooks';
 import type { DiscordUser } from './types';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [discordUser, setDiscordUser] = useState<DiscordUser | null>(null);
+  const [, setCurrentView] = useState('dashboard');
 
   console.log('[App] Rendering App component');
 
@@ -21,6 +23,9 @@ function App() {
   // Detect League of Legends and fetch summoner
   const { isLolRunning, summoner, isLoadingSummoner } = useLoLDetection(isAuthenticated);
   console.log('[App] LoL Detection state:', { isLolRunning, summoner, isLoadingSummoner });
+
+  // Detect live game and show notification
+  const { isInGame, hasNotified, markAsNotified } = useLiveGameDetection(isLolRunning);
 
   const handleLogin = (user: DiscordUser) => {
     setDiscordUser(user);
@@ -34,7 +39,7 @@ function App() {
   if (isApiLoading) {
     console.log('[App] Rendering loading screen');
     return (
-      <div className="min-h-screen bg-base-black flex items-center justify-center">
+      <div className="min-h-screen tiled-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-base-lighter text-lg">Initialisation de Galpha...</p>
@@ -51,7 +56,7 @@ function App() {
   // Show error if API failed to initialize (other errors)
   if (apiError) {
     return (
-      <div className="min-h-screen bg-base-black flex items-center justify-center px-6">
+      <div className="min-h-screen tiled-background flex items-center justify-center px-6">
         <div className="max-w-md w-full bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-2xl p-8 text-center">
           <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
@@ -85,6 +90,14 @@ function App() {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
+  const handleViewLiveGame = () => {
+    setCurrentView('livegame');
+  };
+
+  const handleDismissNotification = () => {
+    markAsNotified();
+  };
+
   return (
     <ErrorBoundary>
       <WindowTitleBar />
@@ -93,6 +106,11 @@ function App() {
         currentSummoner={summoner}
         isLoadingSummoner={isLoadingSummoner}
         discordUser={discordUser}
+      />
+      <LiveGameNotification
+        isVisible={isInGame && !hasNotified && isAuthenticated}
+        onViewLiveGame={handleViewLiveGame}
+        onDismiss={handleDismissNotification}
       />
       <UpdateChecker />
     </ErrorBoundary>

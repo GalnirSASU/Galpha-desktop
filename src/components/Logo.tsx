@@ -9,7 +9,7 @@ interface LogoProps {
   usePng?: boolean;  // Option to use PNG instead of SVG
 }
 
-export default function Logo({ size = 'md', showText = false, iconOnly = false, className = '', usePng = false }: LogoProps) {
+export default function Logo({ size = 'md', className = '', usePng = false }: LogoProps) {
   const heightClasses = {
     sm: 'h-8',
     md: 'h-12',

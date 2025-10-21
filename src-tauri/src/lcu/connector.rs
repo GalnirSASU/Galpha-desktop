@@ -152,4 +152,66 @@ impl LcuConnector {
 
         Ok((game_name, tag_line))
     }
+
+    /// Get active game session information
+    pub async fn get_active_game(&self) -> Result<Option<ActiveGameInfo>> {
+        let url = format!("{}/lol-gameflow/v1/session", self.base_url);
+
+        debug!("Fetching active game session from: {}", url);
+
+        let password = self.auth_token.split(':').nth(1)
+            .ok_or_else(|| anyhow::anyhow!("Invalid auth token format"))?;
+
+        let response = self.client
+            .get(&url)
+            .basic_auth("riot", Some(password))
+            .send()
+            .await
+            .context("Failed to send request to LCU")?;
+
+        if !response.status().is_success() {
+            // No active game session
+            return Ok(None);
+        }
+
+        let game_session: ActiveGameInfo = response.json().await
+            .context("Failed to parse active game info")?;
+
+        // Only return data if actually in game
+        if game_session.phase == "InProgress" || game_session.phase == "ChampSelect" {
+            info!("Active game session found in phase: {}", game_session.phase);
+            Ok(Some(game_session))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ActiveGameInfo {
+    pub phase: String,
+    #[serde(rename = "gameData")]
+    pub game_data: GameData,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct GameData {
+    #[serde(rename = "teamOne")]
+    pub team_one: Vec<GameParticipant>,
+    #[serde(rename = "teamTwo")]
+    pub team_two: Vec<GameParticipant>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct GameParticipant {
+    #[serde(rename = "summonerId")]
+    pub summoner_id: u64,
+    #[serde(rename = "summonerName")]
+    pub summoner_name: Option<String>,
+    #[serde(rename = "puuid")]
+    pub puuid: String,
+    #[serde(rename = "championId")]
+    pub champion_id: i32,
+    #[serde(rename = "teamId")]
+    pub team_id: i32,
 }

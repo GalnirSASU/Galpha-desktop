@@ -7,20 +7,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Galpha.app inspired color palette
+        // Galpha brand colors - matching logo
         accent: {
-          primary: '#D4AF37', // Gold
-          secondary: '#F0C674', // Light gold
-          tertiary: '#C9A461', // Dark gold
-          glow: '#FFD700', // Gold glow
+          primary: '#F5A623', // Orange-gold (logo color)
+          secondary: '#FFB84D', // Light orange-gold
+          tertiary: '#D68910', // Dark orange-gold
+          glow: '#FFC870', // Gold glow
         },
         base: {
-          black: '#0A0E1A', // Dark blue-black
-          darker: '#0D1117',
-          dark: '#151922', // Dark blue
-          medium: '#1A1F2E',
-          light: '#252A3A',
-          lighter: '#303546',
+          black: '#0B0F1A', // Deep navy-black (matching logo background)
+          darker: '#0E1420',
+          dark: '#13182A', // Dark navy
+          medium: '#1A2033',
+          light: '#222940',
+          lighter: '#2D3548',
         },
         discord: {
           blurple: '#5865F2',
@@ -58,11 +58,11 @@ export default {
         xs: '2px',
       },
       boxShadow: {
-        'glow-sm': '0 0 10px rgba(212, 175, 55, 0.3)',
-        'glow': '0 0 20px rgba(212, 175, 55, 0.4)',
-        'glow-lg': '0 0 30px rgba(212, 175, 55, 0.5)',
-        'gold': '0 4px 16px rgba(212, 175, 55, 0.25)',
-        'inner-glow': 'inset 0 0 20px rgba(212, 175, 55, 0.2)',
+        'glow-sm': '0 0 10px rgba(245, 166, 35, 0.3)',
+        'glow': '0 0 20px rgba(245, 166, 35, 0.4)',
+        'glow-lg': '0 0 30px rgba(245, 166, 35, 0.5)',
+        'gold': '0 4px 16px rgba(245, 166, 35, 0.25)',
+        'inner-glow': 'inset 0 0 20px rgba(245, 166, 35, 0.2)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
