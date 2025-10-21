@@ -3,6 +3,9 @@ import { invoke } from '@tauri-apps/api/core';
 import TopNavigation from './TopNavigation';
 import OnboardingView from './OnboardingView';
 import ProgressionChart from './ProgressionChart';
+import LiveGame from './LiveGame';
+import Replays from './Replays';
+import Settings from './Settings';
 import { useMatchHistory } from '../hooks/useMatchHistory';
 import { getChampionIconUrl, handleChampionIconError, normalizeChampionName } from '../utils/championIcon';
 import type { Summoner, SavedAccount, DiscordUser, SummonerDetails, RankedStats } from '../types';
@@ -66,15 +69,17 @@ export default function MainDashboard({ isLolRunning, currentSummoner }: MainDas
 
         console.log('Summoner data from Riot API:', summonerData);
 
-        // Récupérer les stats ranked (uniquement si on a un ID)
+        // Récupérer les stats ranked en utilisant le PUUID
+        // L'API Riot a ajouté un endpoint /lol/league/v4/entries/by-puuid qui permet
+        // de récupérer les stats ranked directement avec le PUUID, sans avoir besoin du summoner ID
         let rankedData: RankedStats[] = [];
-        if (summonerData.id) {
-          rankedData = await invoke<RankedStats[]>('get_ranked_stats', {
-            summonerId: summonerData.id,
+        try {
+          rankedData = await invoke<RankedStats[]>('get_ranked_stats_by_puuid', {
+            puuid: accountData.puuid,
           });
-          console.log('Ranked data from Riot API:', rankedData);
-        } else {
-          console.warn('Summoner ID not available, skipping ranked stats');
+          console.log('Ranked data from Riot API (by PUUID):', rankedData);
+        } catch (error) {
+          console.error('Failed to fetch ranked stats:', error);
         }
 
         // Trouver les stats de la queue Solo/Duo
@@ -502,7 +507,14 @@ export default function MainDashboard({ isLolRunning, currentSummoner }: MainDas
 
       {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pt-24">
-        <div className="pb-8">
+        {currentView === 'livegame' ? (
+          <LiveGame />
+        ) : currentView === 'replays' ? (
+          <Replays />
+        ) : currentView === 'settings' ? (
+          <Settings />
+        ) : (
+          <div className="pb-8">
         {/* Hero Section - Summoner Info */}
         <div className="relative bg-gradient-to-br from-base-dark via-base-darker to-base-black border-b border-base-medium shadow-2xl overflow-hidden">
           {/* Background Image - Use most played champion or default */}
@@ -978,6 +990,7 @@ export default function MainDashboard({ isLolRunning, currentSummoner }: MainDas
           </div>
         </div>
       </div>
+        )}
     </div>
     </div>
   );

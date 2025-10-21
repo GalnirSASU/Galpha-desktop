@@ -211,7 +211,7 @@ impl RiotApiClient {
         Ok(summoner)
     }
 
-    /// Get ranked stats for a summoner by summoner ID
+    /// Get ranked stats for a summoner by summoner ID (deprecated - use get_ranked_stats_by_puuid instead)
     pub async fn get_ranked_stats(&self, summoner_id: &str) -> Result<Vec<serde_json::Value>> {
         let url = format!(
             "https://{}.api.riotgames.com/lol/league/v4/entries/by-summoner/{}",
@@ -230,8 +230,7 @@ impl RiotApiClient {
         Ok(stats)
     }
 
-    /// Get ranked stats for a summoner by PUUID
-    /// This uses the newer /entries/by-puuid endpoint that doesn't require summoner ID
+    /// Get ranked stats for a summoner by PUUID (recommended method)
     pub async fn get_ranked_stats_by_puuid(&self, puuid: &str) -> Result<Vec<serde_json::Value>> {
         let url = format!(
             "https://{}.api.riotgames.com/lol/league/v4/entries/by-puuid/{}",
@@ -247,7 +246,7 @@ impl RiotApiClient {
             .await
             .context("Failed to parse ranked stats")?;
 
-        info!("Retrieved ranked stats for PUUID: {}", puuid);
+        info!("Ranked stats fetched successfully for PUUID");
 
         Ok(stats)
     }
