@@ -1,6 +1,6 @@
 [package]
 name = "galpha-desktop"
-version = "0.0.2"
+version = "0.0.3"
 description = "League of Legends stats tracker with AI-powered insights"
 authors = ["Galpha Team"]
 edition = "2021"
