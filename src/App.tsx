@@ -33,8 +33,29 @@ function App() {
     setIsAuthenticated(true);
   };
 
+  // TOUJOURS afficher l'écran de configuration de la clé API en premier
+  // si l'utilisateur n'a pas encore configuré la clé
+  if (!apiKeyConfigured) {
+    console.log('[App] AFFICHAGE FORCE de ApiKeySetup - apiKeyConfigured=false');
+    return (
+      <ApiKeySetup
+        onApiKeySet={() => {
+          console.log('[App] Clé API configurée, rechargement...');
+          setApiKeyConfigured(true);
+          window.location.reload(); // Reload to reinitialize API
+        }}
+        onSkip={() => {
+          console.log('[App] Configuration de la clé API ignorée');
+          setApiKeyConfigured(true);
+        }}
+      />
+    );
+  }
+
+  console.log('[App] apiKeyConfigured=true, passage aux autres écrans');
   console.log('[App] isAuthenticated:', isAuthenticated);
-  console.log('[App] Will render:', isApiLoading ? 'Loading' : apiError ? 'Error' : !isAuthenticated ? 'LoginScreen' : 'MainDashboard');
+  console.log('[App] isApiLoading:', isApiLoading);
+  console.log('[App] apiError:', apiError);
 
   // Show loading state while API initializes
   if (isApiLoading) {
@@ -46,19 +67,6 @@ function App() {
           <p className="text-base-lighter text-lg">Initialisation de Galpha...</p>
         </div>
       </div>
-    );
-  }
-
-  // Show API key setup before login if API key is not configured and user hasn't skipped
-  if (!apiKeyConfigured && apiError && apiError.includes('not configured')) {
-    return (
-      <ApiKeySetup
-        onApiKeySet={() => {
-          setApiKeyConfigured(true);
-          window.location.reload(); // Reload to reinitialize API
-        }}
-        onSkip={() => setApiKeyConfigured(true)}
-      />
     );
   }
 
