@@ -5,6 +5,7 @@ import LoginScreen from './components/LoginScreen';
 import MainDashboard from './components/MainDashboard';
 import LiveGameNotification from './components/LiveGameNotification';
 import { UpdateChecker } from './components/UpdateChecker';
+import { ApiKeySetup } from './components/ApiKeySetup';
 import { useRiotApi, useLoLDetection, useLiveGameDetection } from './hooks';
 import type { DiscordUser } from './types';
 
@@ -12,6 +13,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [discordUser, setDiscordUser] = useState<DiscordUser | null>(null);
   const [, setCurrentView] = useState('dashboard');
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
 
   console.log('[App] Rendering App component');
 
@@ -47,8 +49,18 @@ function App() {
     );
   }
 
-  // Allow users to continue even without API key - they can set it in Settings
-  // Only show loading/errors during the initial auth check
+  // Show API key setup before login if API key is not configured and user hasn't skipped
+  if (!apiKeyConfigured && apiError && apiError.includes('not configured')) {
+    return (
+      <ApiKeySetup
+        onApiKeySet={() => {
+          setApiKeyConfigured(true);
+          window.location.reload(); // Reload to reinitialize API
+        }}
+        onSkip={() => setApiKeyConfigured(true)}
+      />
+    );
+  }
 
   if (!isAuthenticated) {
     return <LoginScreen onLogin={handleLogin} />;
