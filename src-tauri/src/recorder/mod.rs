@@ -224,14 +224,14 @@ impl Recorder {
         // Now handle the process without holding the lock
         if let Some(mut process) = process_opt.take() {
             // Send signal to FFmpeg to stop recording gracefully
-            #[cfg(unix)]
+            #[cfg(target_os = "linux")]
             {
                 unsafe {
                     libc::kill(process.id() as i32, libc::SIGINT);
                 }
             }
 
-            #[cfg(windows)]
+            #[cfg(not(target_os = "linux"))]
             {
                 let _ = process.kill();
             }
