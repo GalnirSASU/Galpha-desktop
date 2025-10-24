@@ -5,7 +5,6 @@ import LoginScreen from './components/LoginScreen';
 import MainDashboard from './components/MainDashboard';
 import LiveGameNotification from './components/LiveGameNotification';
 import { UpdateChecker } from './components/UpdateChecker';
-import { ApiKeySetup } from './components/ApiKeySetup';
 import { useRiotApi, useLoLDetection, useLiveGameDetection } from './hooks';
 import type { DiscordUser } from './types';
 
@@ -17,7 +16,7 @@ function App() {
   console.log('[App] Rendering App component');
 
   // Initialize Riot API
-  const { isLoading: isApiLoading, error: apiError, reinitialize } = useRiotApi();
+  const { isLoading: isApiLoading, error: apiError } = useRiotApi();
   console.log('[App] Riot API state:', { isApiLoading, apiError });
 
   // Detect League of Legends and fetch summoner
@@ -48,43 +47,8 @@ function App() {
     );
   }
 
-  // Show API key setup if needed
-  if (apiError && apiError.includes('not configured')) {
-    return <ApiKeySetup onApiKeySet={reinitialize} />;
-  }
-
-  // Show error if API failed to initialize (other errors)
-  if (apiError) {
-    return (
-      <div className="min-h-screen tiled-background flex items-center justify-center px-6">
-        <div className="max-w-md w-full bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-2xl p-8 text-center">
-          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-red-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">Erreur d'initialisation</h2>
-          <p className="text-gray-300 mb-6">{apiError}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-gradient-to-r from-accent-primary to-accent-tertiary text-white font-semibold rounded-xl shadow-gold hover:shadow-glow transition-all duration-300"
-          >
-            Recharger
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Allow users to continue even without API key - they can set it in Settings
+  // Only show loading/errors during the initial auth check
 
   if (!isAuthenticated) {
     return <LoginScreen onLogin={handleLogin} />;
@@ -106,6 +70,7 @@ function App() {
         currentSummoner={summoner}
         isLoadingSummoner={isLoadingSummoner}
         discordUser={discordUser}
+        apiError={apiError}
       />
       <LiveGameNotification
         isVisible={isInGame && !hasNotified && isAuthenticated}
