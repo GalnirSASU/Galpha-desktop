@@ -1,196 +1,193 @@
-# Galpha Desktop
+# Galpha
 
-**League of Legends Stats Tracker with AI-Powered Insights**
+> Application desktop pour League of Legends avec suivi de statistiques et enregistrement automatique des parties
 
-Galpha Desktop is a modern, feature-rich desktop application for League of Legends players that provides real-time statistics, match history, and AI-powered analysis - all automatically synced when you play.
+[![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/galnir/Galpha/releases)
+[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/galnir/Galpha/releases)
+[![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/galnir/Galpha/releases)
 
-## Features
+## 🎮 Fonctionnalités
 
-### Core Features (Phase 1 - MVP)
-- **Automatic Detection** - Detects when League of Legends is running
-- **LCU Integration** - Connects to your League Client automatically
-- **Player Profile** - Displays your summoner info, level, and icon
-- **Statistics Dashboard** - KDA, winrate, CS/min, damage, vision score
-- **Match History** - View your recent games with detailed stats
-- **Local Database** - All data stored locally using SQLite
+### ✅ Multi-plateformes (Windows, macOS, Linux)
+- 📊 **Statistiques en temps réel** : Profil, rang, LP, winrate
+- 📈 **Historique des matchs** : 20 dernières parties avec détails complets
+- 🎯 **Détection automatique** : Se connecte automatiquement au client LoL
+- 💾 **Cache intelligent** : Base de données SQLite locale
+- 🔐 **Sécurisé** : Clé API stockée localement, pas de serveur externe
 
-### Planned Features (Phase 2-3)
-- **Pre-game Analysis** - Analyze teammates and opponents in lobby
-- **Win Probability** - AI-powered prediction before the game starts
-- **AI Coach** - Post-match analysis with personalized tips
-- **Achievements System** - Unlock badges and challenges
-- **Advanced Analytics** - Heatmaps, progression graphs, tilt detection
-- **In-game Overlay** - Real-time stats and timers (optional)
-- **Social Features** - Leaderboards, challenges with friends
+### 🎥 Enregistrement automatique (Windows uniquement)
+- ⏺️ **Auto-record** : Démarre/arrête automatiquement avec vos parties
+- 🎞️ **Qualité configurable** : 4 niveaux (720p/1080p/1440p, 30/60fps)
+- 📁 **Gestion des replays** : Liste, lecture et organisation des vidéos
+- 🗑️ **Nettoyage auto** : Suppression automatique des anciens replays
+- 🎯 **Filtres** : Enregistrez toutes les parties ou uniquement les ranked
 
-## Tech Stack
-
-### Backend (Rust)
-- **Tauri** - Modern desktop app framework
-- **Tokio** - Async runtime
-- **SQLx** - Database operations
-- **Reqwest** - HTTP client for Riot API
-- **Sysinfo** - Process detection
-
-### Frontend (React)
-- **React 18** - Modern UI library
-- **TypeScript** - Type-safe JavaScript
-- **Vite** - Lightning-fast build tool
-- **TailwindCSS** - Utility-first styling
-- **Framer Motion** - Smooth animations
-
-### APIs
-- **Riot Games API** - Official match data
-- **LCU API** - League Client integration
-- **Data Dragon** - Champion & item assets
-
-## Getting Started
-
-### Prerequisites
-- **Rust** (latest stable) - [Install Rust](https://www.rust-lang.org/tools/install)
-- **Node.js** (v18+) - [Install Node.js](https://nodejs.org/)
-- **League of Legends** - Obviously!
-- **Riot API Key** - [Get one here](https://developer.riotgames.com/)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/galpha-desktop.git
-   cd galpha-desktop
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Configure your API key**
-   ```bash
-   cp config.example.toml config.toml
-   # Edit config.toml and add your Riot API key
-   ```
-
-4. **Run the development build**
-   ```bash
-   npm run tauri dev
-   ```
-
-### Building for Production
-
-```bash
-npm run tauri build
-```
-
-The installer will be generated in `src-tauri/target/release/bundle/`
-
-## Configuration
-
-Edit `config.toml` to customize:
-- Riot API key and region
-- Auto-start settings
-- Refresh intervals
-- Database location
-- Feature flags
-
-## Project Structure
-
-```
-galpha-desktop/
-├── src/                    # React frontend
-│   ├── components/         # UI components
-│   ├── styles/             # CSS/Tailwind styles
-│   ├── utils/              # Utility functions
-│   ├── App.tsx             # Main app component
-│   └── main.tsx            # Entry point
-│
-├── src-tauri/              # Rust backend
-│   ├── src/
-│   │   ├── lcu/            # League Client integration
-│   │   ├── riot_api/       # Riot API client
-│   │   ├── database/       # SQLite database
-│   │   └── lib.rs          # Main Rust code
-│   └── Cargo.toml          # Rust dependencies
-│
-├── config.toml             # Configuration (create from .example)
-└── README.md               # This file
-```
-
-## How It Works
-
-1. **Detection** - Galpha monitors your system for the League of Legends process
-2. **Connection** - When detected, it reads the lockfile and connects to the LCU API
-3. **Data Fetching** - Retrieves your summoner info and PUUID
-4. **API Calls** - Uses PUUID to fetch match history from Riot API
-5. **Storage** - Saves all data to local SQLite database
-6. **Display** - Shows beautiful stats in the React dashboard
-7. **Auto-Sync** - Refreshes every 30 seconds for new matches
-
-## Rate Limiting
-
-Galpha respects Riot API rate limits:
-- **Development Key**: 20 requests/second, 100 requests/2 minutes
-- **Production Key**: 100 requests/second, 3000 requests/2 minutes
-
-The built-in rate limiter ensures you never exceed these limits.
-
-## Privacy & Security
-
-- **100% Local** - All data stored on your computer
-- **No Servers** - Direct connection to Riot APIs only
-- **Open Source** - Full transparency, audit the code yourself
-- **API Key Safe** - Stored locally in config.toml (never committed)
-
-## Roadmap
-
-### Phase 1 - Core (Current)
-- [x] Project setup with Tauri + React
-- [x] LoL process detection
-- [x] LCU connector
-- [x] SQLite database
-- [x] Basic dashboard UI
-- [ ] Riot API integration (in progress)
-- [ ] Match history display
-
-### Phase 2 - Stats & History
-- [ ] Match details view
-- [ ] Champion statistics
-- [ ] Ranked stats tracking
-- [ ] Performance graphs
-- [ ] Export data feature
-
-### Phase 3 - AI Features
-- [ ] Pre-game lobby analysis
-- [ ] Win probability calculator
-- [ ] Post-match AI coach
-- [ ] Personalized tips
-- [ ] Champion recommendations
-
-### Phase 4 - Advanced
-- [ ] In-game overlay
-- [ ] Achievements system
-- [ ] Social features
-- [ ] Multi-account support
-- [ ] Cloud sync (optional)
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License.
-
-## Disclaimer
-
-Galpha Desktop is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
-
-## Credits
-
-- Built with [Tauri](https://tauri.app/)
-- Powered by [Riot Games API](https://developer.riotgames.com/)
-- Inspired by apps like OP.GG, U.GG, and Porofessor
+> **Note** : L'enregistrement vidéo nécessite [FFmpeg](https://ffmpeg.org/) et est actuellement disponible uniquement sur Windows. Support macOS/Linux à venir.
 
 ---
 
-**Made with ❤️ for the League of Legends community**
+## 📥 Installation
+
+### Windows
+1. Téléchargez le `.msi` ou `.exe` depuis [Releases](https://github.com/galnir/Galpha/releases)
+2. Installez FFmpeg (requis pour l'enregistrement) : `winget install FFmpeg`
+3. Lancez Galpha et suivez la configuration
+
+**📖 [Guide complet Windows](WINDOWS_SETUP.md)**
+
+### macOS
+1. Téléchargez le `.dmg` depuis [Releases](https://github.com/galnir/Galpha/releases)
+2. Glissez Galpha dans Applications
+3. Lancez l'application
+
+### Linux
+1. Téléchargez le `.AppImage` ou `.deb` depuis [Releases](https://github.com/galnir/Galpha/releases)
+2. Donnez les permissions d'exécution
+3. Lancez l'application
+
+---
+
+## 🚀 Développement
+
+### Prérequis
+- Node.js 18+ ([nodejs.org](https://nodejs.org))
+- Rust 1.70+ ([rustup.rs](https://rustup.rs))
+- FFmpeg (pour tester l'enregistrement sur Windows)
+
+### Installation
+```bash
+# Cloner le repository
+git clone https://github.com/galnir/Galpha.git
+cd Galpha
+
+# Installer les dépendances
+npm install
+
+# Lancer en mode dev
+npm run tauri dev
+
+# Build de production
+npm run tauri build
+```
+
+### Structure du projet
+```
+Galpha/
+├── src/                    # Frontend React + TypeScript
+│   ├── components/         # Composants UI
+│   ├── hooks/             # Hooks personnalisés
+│   └── utils/             # Utilitaires
+├── src-tauri/             # Backend Rust
+│   └── src/
+│       ├── lcu/           # Connexion au client LoL
+│       ├── riot_api/      # API Riot Games
+│       ├── recorder/      # Enregistrement vidéo
+│       └── database/      # SQLite
+└── .github/workflows/     # CI/CD GitHub Actions
+```
+
+---
+
+## 🛠️ Technologies
+
+- **Frontend** : React 18, TypeScript, Tailwind CSS
+- **Backend** : Rust, Tauri 2
+- **Base de données** : SQLite (via sqlx)
+- **API** : Riot Games API, LCU (League Client Update)
+- **Enregistrement** : FFmpeg (gdigrab sur Windows)
+
+---
+
+## 📊 Fonctionnalités détaillées
+
+### Suivi des statistiques
+- Connexion automatique au client League of Legends
+- Affichage du profil (nom, niveau, icône)
+- Statistiques ranked (Solo/Duo, Flex)
+- Historique des 20 dernières parties avec :
+  - Champion joué
+  - K/D/A (Kills/Deaths/Assists)
+  - Victoire/Défaite
+  - Mode de jeu
+  - Durée et date
+
+### Enregistrement automatique (Windows)
+- Détection automatique du début/fin de partie
+- Paramètres configurables :
+  - **Basse** : 720p @ 30fps (~1.5 GB/h)
+  - **Moyenne** : 1080p @ 30fps (~3 GB/h)
+  - **Haute** : 1080p @ 60fps (~5 GB/h) ⭐ Recommandé
+  - **Ultra** : 1440p @ 60fps (~8 GB/h)
+- Choix du type de parties (Toutes/Ranked uniquement)
+- Suppression automatique après X jours (optionnel)
+- Fichiers au format MP4 compatible tous lecteurs
+
+---
+
+## ⚙️ Configuration
+
+### Clé API Riot (optionnelle)
+Obtenez une clé sur [developer.riotgames.com](https://developer.riotgames.com) pour accéder aux statistiques détaillées.
+
+### Enregistrement (Windows)
+1. Allez dans **Paramètres**
+2. Activez **"Enregistrement automatique"**
+3. Sélectionnez un **dossier de sauvegarde**
+4. Choisissez la **qualité** d'enregistrement
+5. **Sauvegardez** les paramètres
+
+---
+
+## 🐛 Problèmes connus
+
+### Windows
+- **Audio non capturé** : L'audio système n'est pas enregistré (support à venir)
+- **Écran noir** : Désactiver les overlays (Discord, GeForce Experience)
+
+### macOS
+- **Enregistrement non disponible** : Fonctionnalité en développement
+
+### Linux
+- **Enregistrement non disponible** : Fonctionnalité en développement
+
+---
+
+## 🤝 Contribution
+
+Les contributions sont les bienvenues ! Pour contribuer :
+
+1. Fork le projet
+2. Créez votre branche (`git checkout -b feature/AmazingFeature`)
+3. Commit vos changements (`git commit -m 'Add AmazingFeature'`)
+4. Push vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrez une Pull Request
+
+---
+
+## 📝 Licence
+
+Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
+
+---
+
+## 💬 Support
+
+- 🐛 **Bugs** : Ouvrez une [issue](https://github.com/galnir/Galpha/issues)
+- 💡 **Suggestions** : Ouvrez une [discussion](https://github.com/galnir/Galpha/discussions)
+- 📧 **Contact** : [GitHub](https://github.com/galnir)
+
+---
+
+## ⭐ Remerciements
+
+- [Riot Games](https://developer.riotgames.com) pour l'API
+- [Tauri](https://tauri.app) pour le framework
+- [FFmpeg](https://ffmpeg.org) pour l'encodage vidéo
+- La communauté League of Legends
+
+---
+
+**Fait avec ❤️ pour la communauté League of Legends**
+
+[![GitHub stars](https://img.shields.io/github/stars/galnir/Galpha?style=social)](https://github.com/galnir/Galpha/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/galnir/Galpha)](https://github.com/galnir/Galpha/issues)

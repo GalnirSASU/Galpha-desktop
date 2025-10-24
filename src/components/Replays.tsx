@@ -1,121 +1,73 @@
 import { useState, useEffect } from 'react';
-import ReplayPlayer from './ReplayPlayer';
+import { invoke } from '@tauri-apps/api/core';
 
-interface ReplayEvent {
-  timestamp: number;
-  type: 'kill' | 'death' | 'assist' | 'ult' | 'objective' | 'pentakill' | 'quadrakill' | 'triplekill';
-  description: string;
-  icon: string;
-  color: string;
-}
-
-interface ReplayData {
-  id: string;
-  matchId: string;
-  gameCreation: number;
-  gameDuration: number;
-  gameMode: string;
-  queueId: number;
-  championName: string;
-  championId: number;
-  win: boolean;
-  kills: number;
-  deaths: number;
-  assists: number;
+interface RecordingFile {
   filePath: string;
+  fileName: string;
   fileSize: number;
-  events?: ReplayEvent[];
+  createdAt: number;
 }
 
 export default function Replays() {
-  const [replays, setReplays] = useState<ReplayData[]>([]);
+  const [recordings, setRecordings] = useState<RecordingFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'wins' | 'losses'>('all');
-  const [sortBy, setSortBy] = useState<'date' | 'duration' | 'kda'>('date');
-  const [selectedReplay, setSelectedReplay] = useState<ReplayData | null>(null);
+  const [recordingPath, setRecordingPath] = useState<string>('');
 
   useEffect(() => {
-    loadReplays();
+    // Load recording path from settings
+    const settingsStr = localStorage.getItem('galpha_settings');
+    if (settingsStr) {
+      const settings = JSON.parse(settingsStr);
+      if (settings.recordingPath) {
+        setRecordingPath(settings.recordingPath);
+        loadRecordings(settings.recordingPath);
+      } else {
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
+    }
   }, []);
 
-  const loadReplays = async () => {
+  const loadRecordings = async (path: string) => {
     try {
       setIsLoading(true);
-      // Pour l'instant, on simule des données
-      // TODO: Implémenter la récupération réelle depuis la base de données
-      const mockReplays: ReplayData[] = [];
-      setReplays(mockReplays);
+      const files = await invoke<RecordingFile[]>('list_recordings', {
+        directory: path,
+      });
+      setRecordings(files);
     } catch (error) {
-      console.error('Failed to load replays:', error);
+      console.error('Failed to load recordings:', error);
+      setRecordings([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const deleteReplay = async (replayId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce replay ?')) {
-      return;
-    }
-
+  const playRecording = async (filePath: string) => {
     try {
-      // TODO: Implémenter la suppression
-      setReplays(replays.filter((r) => r.id !== replayId));
+      // Use Tauri's shell plugin to open the file with the default application
+      await invoke('plugin:opener|open', { path: filePath });
     } catch (error) {
-      console.error('Failed to delete replay:', error);
+      console.error('Failed to open recording:', error);
+      alert('Impossible d\'ouvrir la vidéo. Assurez-vous d\'avoir un lecteur vidéo installé.');
     }
   };
 
-  const playReplay = async (replay: ReplayData) => {
-    try {
-      // Generate mock events for demo
-      const mockEvents: ReplayEvent[] = [
-        {
-          timestamp: 120,
-          type: 'kill',
-          description: 'First Blood!',
-          icon: '⚔️',
-          color: 'bg-green-500/20 border-green-400',
-        },
-        {
-          timestamp: 245,
-          type: 'death',
-          description: 'Vous êtes mort',
-          icon: '💀',
-          color: 'bg-red-500/20 border-red-400',
-        },
-        {
-          timestamp: 380,
-          type: 'assist',
-          description: 'Double Kill Assistance',
-          icon: '🤝',
-          color: 'bg-blue-500/20 border-blue-400',
-        },
-        {
-          timestamp: 520,
-          type: 'ult',
-          description: 'Ultimate utilisé',
-          icon: '💥',
-          color: 'bg-purple-500/20 border-purple-400',
-        },
-        {
-          timestamp: 890,
-          type: 'triplekill',
-          description: 'Triple Kill!',
-          icon: '🔥',
-          color: 'bg-orange-500/20 border-orange-400',
-        },
-        {
-          timestamp: 1240,
-          type: 'objective',
-          description: 'Dragon tué',
-          icon: '🐉',
-          color: 'bg-cyan-500/20 border-cyan-400',
-        },
-      ];
+  const openFolder = async () => {
+    if (recordingPath) {
+      try {
+        // Use Tauri's shell plugin to open the folder
+        await invoke('plugin:opener|open', { path: recordingPath });
+      } catch (error) {
+        console.error('Failed to open folder:', error);
+      }
+    }
+  };
 
-      setSelectedReplay({ ...replay, events: mockEvents });
-    } catch (error) {
-      console.error('Failed to play replay:', error);
+  const refreshRecordings = () => {
+    if (recordingPath) {
+      loadRecordings(recordingPath);
     }
   };
 
@@ -126,35 +78,26 @@ export default function Replays() {
     return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
   };
 
-  const formatDuration = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
+  const formatDate = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 
-  const filteredReplays = replays.filter((replay) => {
-    if (filter === 'wins') return replay.win;
-    if (filter === 'losses') return !replay.win;
-    return true;
-  });
-
-  const sortedReplays = [...filteredReplays].sort((a, b) => {
-    if (sortBy === 'date') return b.gameCreation - a.gameCreation;
-    if (sortBy === 'duration') return b.gameDuration - a.gameDuration;
-    if (sortBy === 'kda') {
-      const kdaA = a.deaths > 0 ? (a.kills + a.assists) / a.deaths : a.kills + a.assists;
-      const kdaB = b.deaths > 0 ? (b.kills + b.assists) / b.deaths : b.kills + b.assists;
-      return kdaB - kdaA;
+    if (diffHours < 24) {
+      return `Il y a ${diffHours}h`;
     }
-    return 0;
-  });
 
-  const queueNames: { [key: number]: string } = {
-    420: 'Ranked Solo/Duo',
-    440: 'Ranked Flex',
-    450: 'ARAM',
-    400: 'Normal Draft',
-    430: 'Normal Blind',
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) {
+      return `Il y a ${diffDays}j`;
+    }
+
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   };
 
   if (isLoading) {
@@ -168,15 +111,42 @@ export default function Replays() {
     );
   }
 
-  // Show replay player if a replay is selected
-  if (selectedReplay) {
+  if (!recordingPath) {
     return (
-      <ReplayPlayer
-        matchId={selectedReplay.matchId}
-        gameDuration={selectedReplay.gameDuration}
-        events={selectedReplay.events || []}
-        onClose={() => setSelectedReplay(null)}
-      />
+      <div className="space-y-6 pb-20">
+        <div className="bg-gradient-to-br from-base-dark to-base-darker rounded-2xl border border-base-medium p-12 text-center">
+          <div className="w-20 h-20 bg-base-medium rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2">Configuration requise</h3>
+          <p className="text-gray-400 mb-6">
+            Veuillez configurer un dossier d'enregistrement dans les paramètres
+          </p>
+          <button
+            onClick={() => {
+              // Navigate to settings tab
+              const settingsTab = document.querySelector('[data-tab="settings"]') as HTMLButtonElement;
+              if (settingsTab) settingsTab.click();
+            }}
+            className="px-6 py-3 bg-gradient-to-r from-accent-primary to-accent-tertiary text-white font-semibold rounded-xl shadow-gold hover:shadow-glow transition-all duration-300"
+          >
+            Aller aux paramètres
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -190,53 +160,46 @@ export default function Replays() {
               Mes Replays
             </h1>
             <p className="text-gray-400 text-sm">
-              {replays.length} replay{replays.length > 1 ? 's' : ''} enregistré{replays.length > 1 ? 's' : ''}
+              {recordings.length} enregistrement{recordings.length > 1 ? 's' : ''}
             </p>
           </div>
 
-          {/* Filters */}
+          {/* Actions */}
           <div className="flex gap-3">
-            {(['all', 'wins', 'losses'] as const).map((filterType) => (
-              <button
-                key={filterType}
-                onClick={() => setFilter(filterType)}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                  filter === filterType
-                    ? 'bg-gradient-to-r from-accent-primary to-accent-tertiary text-white shadow-gold'
-                    : 'bg-base-medium text-gray-400 hover:text-white hover:bg-base-light'
-                }`}
-              >
-                {filterType === 'all' && 'Tous'}
-                {filterType === 'wins' && 'Victoires'}
-                {filterType === 'losses' && 'Défaites'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Sort Options */}
-        <div className="flex items-center gap-3 mt-4">
-          <span className="text-sm text-gray-400">Trier par:</span>
-          {(['date', 'duration', 'kda'] as const).map((sort) => (
             <button
-              key={sort}
-              onClick={() => setSortBy(sort)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                sortBy === sort
-                  ? 'bg-accent-primary text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-base-light'
-              }`}
+              onClick={refreshRecordings}
+              className="px-4 py-2 bg-base-medium text-gray-300 hover:text-white hover:bg-base-light rounded-lg font-semibold transition-all flex items-center gap-2"
             >
-              {sort === 'date' && 'Date'}
-              {sort === 'duration' && 'Durée'}
-              {sort === 'kda' && 'KDA'}
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Actualiser
             </button>
-          ))}
+            <button
+              onClick={openFolder}
+              className="px-4 py-2 bg-gradient-to-r from-accent-primary to-accent-tertiary text-white font-semibold rounded-lg hover:shadow-glow transition-all flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
+              </svg>
+              Ouvrir le dossier
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Replays List */}
-      {sortedReplays.length === 0 ? (
+      {/* Recordings List */}
+      {recordings.length === 0 ? (
         <div className="bg-gradient-to-br from-base-dark to-base-darker rounded-2xl border border-base-medium p-12 text-center">
           <div className="w-20 h-20 bg-base-medium rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,90 +211,48 @@ export default function Replays() {
               />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">Aucun replay disponible</h3>
-          <p className="text-gray-400 mb-6">
-            Activez l'enregistrement automatique dans les paramètres pour commencer à enregistrer vos parties
+          <h3 className="text-xl font-bold text-white mb-2">Aucun enregistrement</h3>
+          <p className="text-gray-400 mb-2">Vos parties enregistrées apparaîtront ici</p>
+          <p className="text-sm text-gray-500">
+            Lancez une partie pour commencer l'enregistrement automatique
           </p>
-          <button
-            onClick={() => {
-              // TODO: Navigate to settings
-              console.log('Navigate to settings');
-            }}
-            className="px-6 py-3 bg-gradient-to-r from-accent-primary to-accent-tertiary text-white font-semibold rounded-xl shadow-gold hover:shadow-glow transition-all duration-300"
-          >
-            Configurer l'enregistrement
-          </button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {sortedReplays.map((replay) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {recordings.map((recording, index) => (
             <div
-              key={replay.id}
-              className={`group relative overflow-hidden rounded-xl border transition-all duration-300 hover:scale-[1.01] ${
-                replay.win
-                  ? 'bg-gradient-to-r from-blue-900/30 to-blue-800/30 border-blue-500/30 hover:border-blue-400/50 hover:shadow-lg hover:shadow-blue-500/20'
-                  : 'bg-gradient-to-r from-red-900/30 to-red-800/30 border-red-500/30 hover:border-red-400/50 hover:shadow-lg hover:shadow-red-500/20'
-              }`}
+              key={index}
+              className="group relative overflow-hidden rounded-xl border border-base-medium bg-gradient-to-br from-base-dark to-base-darker hover:border-accent-primary/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-accent-primary/20"
             >
               <div className="p-4">
-                <div className="flex items-center gap-4">
-                  {/* Game Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          replay.win ? 'bg-blue-500/20 text-blue-300' : 'bg-red-500/20 text-red-300'
-                        }`}
-                      >
-                        {replay.win ? 'VICTOIRE' : 'DÉFAITE'}
-                      </span>
-                      <span className="text-sm font-semibold text-white">
-                        {queueNames[replay.queueId] || replay.gameMode}
-                      </span>
-                      <span className="text-sm text-gray-400">•</span>
-                      <span className="text-sm text-gray-400">
-                        {new Date(replay.gameCreation).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-300">
-                      <span className="font-semibold">{replay.championName}</span>
-                      <span className="text-gray-500">•</span>
-                      <span>
-                        {replay.kills}/{replay.deaths}/{replay.assists}
-                      </span>
-                      <span className="text-gray-500">•</span>
-                      <span>{formatDuration(replay.gameDuration)}</span>
-                      <span className="text-gray-500">•</span>
-                      <span className="text-xs text-gray-500">{formatFileSize(replay.fileSize)}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => playReplay(replay)}
-                      className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-glow transition-all duration-300 flex items-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                      Lire
-                    </button>
-                    <button
-                      onClick={() => deleteReplay(replay.id)}
-                      className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all duration-300"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
+                {/* Video Thumbnail Placeholder */}
+                <div className="relative mb-3 aspect-video bg-base-medium rounded-lg flex items-center justify-center overflow-hidden">
+                  <svg className="w-16 h-16 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  <div className="absolute top-2 right-2 px-2 py-1 bg-black/70 text-white text-xs font-semibold rounded">
+                    {formatFileSize(recording.fileSize)}
                   </div>
                 </div>
+
+                {/* File Info */}
+                <div className="mb-3">
+                  <h3 className="text-white font-semibold text-sm mb-1 truncate" title={recording.fileName}>
+                    {recording.fileName.replace('galpha_recording_', '').replace('.mp4', '')}
+                  </h3>
+                  <p className="text-xs text-gray-400">{formatDate(recording.createdAt)}</p>
+                </div>
+
+                {/* Actions */}
+                <button
+                  onClick={() => playRecording(recording.filePath)}
+                  className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-glow transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  Lire la vidéo
+                </button>
               </div>
             </div>
           ))}

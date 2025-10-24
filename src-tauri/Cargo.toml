@@ -40,3 +40,6 @@ tiny_http = "0.12"
 uuid = { version = "1.10", features = ["v4"] }
 open = "5.3"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+

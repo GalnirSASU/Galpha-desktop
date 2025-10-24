@@ -2,11 +2,13 @@ mod lcu;
 mod riot_api;
 mod database;
 mod discord;
+mod recorder;
 
 use lcu::{LolDetector, LcuConnector, ActiveGameInfo};
 use riot_api::{RiotApiClient, MatchDetails};
 use database::{Database, DbSummoner, DbMatch, PlayerStats, RankedStatsCache, MatchCacheMetadata};
 use discord::{DiscordOAuth, DiscordUser};
+use recorder::{Recorder, RecordingQuality};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tauri::State;
@@ -20,6 +22,7 @@ pub struct AppState {
     db: Arc<Mutex<Option<Database>>>,
     api_key: Arc<Mutex<Option<String>>>,
     region: Arc<Mutex<String>>,
+    recorder: Arc<Mutex<Recorder>>,
 }
 
 // Initialize logging
@@ -433,6 +436,103 @@ async fn set_api_key(state: State<'_, AppState>, api_key: String) -> Result<(), 
     Ok(())
 }
 
+// Recording commands
+#[tauri::command]
+async fn start_recording(
+    state: State<'_, AppState>,
+    output_dir: String,
+    quality: String,
+) -> Result<String, String> {
+    let recorder = state.recorder.lock().await;
+
+    let quality_enum = match quality.as_str() {
+        "low" => RecordingQuality::Low,
+        "medium" => RecordingQuality::Medium,
+        "high" => RecordingQuality::High,
+        "ultra" => RecordingQuality::Ultra,
+        _ => RecordingQuality::High,
+    };
+
+    let output_path = std::path::PathBuf::from(output_dir);
+
+    recorder.start_recording(output_path, quality_enum)
+        .await
+        .map_err(|e| format!("Failed to start recording: {}", e))
+}
+
+#[tauri::command]
+async fn stop_recording(state: State<'_, AppState>) -> Result<String, String> {
+    let recorder = state.recorder.lock().await;
+
+    recorder.stop_recording()
+        .await
+        .map_err(|e| format!("Failed to stop recording: {}", e))
+}
+
+#[tauri::command]
+async fn is_recording(state: State<'_, AppState>) -> Result<bool, String> {
+    let recorder = state.recorder.lock().await;
+    Ok(recorder.is_recording())
+}
+
+#[tauri::command]
+async fn list_recordings(directory: String) -> Result<Vec<serde_json::Value>, String> {
+    use std::fs;
+    use std::path::Path;
+
+    let dir_path = Path::new(&directory);
+
+    if !dir_path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut recordings = Vec::new();
+
+    match fs::read_dir(dir_path) {
+        Ok(entries) => {
+            for entry in entries.flatten() {
+                let path = entry.path();
+
+                // Only include .mp4 files that match our naming pattern
+                if let Some(extension) = path.extension() {
+                    if extension == "mp4" {
+                        if let Some(file_name) = path.file_name() {
+                            let file_name_str = file_name.to_string_lossy();
+
+                            // Check if it's a galpha recording
+                            if file_name_str.starts_with("galpha_recording_") {
+                                if let Ok(metadata) = fs::metadata(&path) {
+                                    let recording = serde_json::json!({
+                                        "filePath": path.to_str().unwrap(),
+                                        "fileName": file_name_str,
+                                        "fileSize": metadata.len(),
+                                        "createdAt": metadata.created()
+                                            .ok()
+                                            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                                            .map(|d| d.as_secs())
+                                            .unwrap_or(0),
+                                    });
+                                    recordings.push(recording);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Err(e) => return Err(format!("Failed to read directory: {}", e)),
+    }
+
+    // Sort by creation date (newest first)
+    recordings.sort_by(|a, b| {
+        let time_a = a["createdAt"].as_u64().unwrap_or(0);
+        let time_b = b["createdAt"].as_u64().unwrap_or(0);
+        time_b.cmp(&time_a)
+    });
+
+    Ok(recordings)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     init_logging();
@@ -441,12 +541,14 @@ pub fn run() {
     let db = Arc::new(Mutex::new(None));
     let api_key = Arc::new(Mutex::new(None));
     let region = Arc::new(Mutex::new("euw1".to_string()));
+    let recorder = Arc::new(Mutex::new(Recorder::new()));
 
     let app_state = AppState {
         detector,
         db,
         api_key,
         region,
+        recorder,
     };
 
     tauri::Builder::default()
@@ -473,6 +575,10 @@ pub fn run() {
             discord_login,
             get_api_key,
             set_api_key,
+            start_recording,
+            stop_recording,
+            is_recording,
+            list_recordings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
