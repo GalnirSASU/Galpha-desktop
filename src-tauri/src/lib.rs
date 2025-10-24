@@ -2,12 +2,16 @@ mod lcu;
 mod riot_api;
 mod database;
 mod discord;
+
+#[cfg(not(target_os = "macos"))]
 mod recorder;
 
 use lcu::{LolDetector, LcuConnector, ActiveGameInfo};
 use riot_api::{RiotApiClient, MatchDetails};
 use database::{Database, DbSummoner, DbMatch, PlayerStats, RankedStatsCache, MatchCacheMetadata};
 use discord::{DiscordOAuth, DiscordUser};
+
+#[cfg(not(target_os = "macos"))]
 use recorder::{Recorder, RecordingQuality};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -22,6 +26,7 @@ pub struct AppState {
     db: Arc<Mutex<Option<Database>>>,
     api_key: Arc<Mutex<Option<String>>>,
     region: Arc<Mutex<String>>,
+    #[cfg(not(target_os = "macos"))]
     recorder: Arc<Mutex<Recorder>>,
 }
 
@@ -437,6 +442,7 @@ async fn set_api_key(state: State<'_, AppState>, api_key: String) -> Result<(), 
 }
 
 // Recording commands
+#[cfg(not(target_os = "macos"))]
 #[tauri::command]
 async fn start_recording(
     state: State<'_, AppState>,
@@ -460,6 +466,17 @@ async fn start_recording(
         .map_err(|e| format!("Failed to start recording: {}", e))
 }
 
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn start_recording(
+    _state: State<'_, AppState>,
+    _output_dir: String,
+    _quality: String,
+) -> Result<String, String> {
+    Err("L'enregistrement vidéo n'est pas encore supporté sur macOS. Cette fonctionnalité est disponible sur Windows uniquement.".to_string())
+}
+
+#[cfg(not(target_os = "macos"))]
 #[tauri::command]
 async fn stop_recording(state: State<'_, AppState>) -> Result<String, String> {
     let recorder = state.recorder.lock().await;
@@ -469,10 +486,23 @@ async fn stop_recording(state: State<'_, AppState>) -> Result<String, String> {
         .map_err(|e| format!("Failed to stop recording: {}", e))
 }
 
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn stop_recording(_state: State<'_, AppState>) -> Result<String, String> {
+    Err("L'enregistrement vidéo n'est pas disponible sur macOS.".to_string())
+}
+
+#[cfg(not(target_os = "macos"))]
 #[tauri::command]
 async fn is_recording(state: State<'_, AppState>) -> Result<bool, String> {
     let recorder = state.recorder.lock().await;
     Ok(recorder.is_recording())
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+async fn is_recording(_state: State<'_, AppState>) -> Result<bool, String> {
+    Ok(false)
 }
 
 #[tauri::command]
@@ -541,6 +571,8 @@ pub fn run() {
     let db = Arc::new(Mutex::new(None));
     let api_key = Arc::new(Mutex::new(None));
     let region = Arc::new(Mutex::new("euw1".to_string()));
+
+    #[cfg(not(target_os = "macos"))]
     let recorder = Arc::new(Mutex::new(Recorder::new()));
 
     let app_state = AppState {
@@ -548,6 +580,7 @@ pub fn run() {
         db,
         api_key,
         region,
+        #[cfg(not(target_os = "macos"))]
         recorder,
     };
 
