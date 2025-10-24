@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 
 interface SettingsState {
   autoRecording: boolean;
@@ -25,9 +26,16 @@ export default function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Riot API Key state
+  const [apiKey, setApiKey] = useState('');
+  const [apiKeyLoading, setApiKeyLoading] = useState(false);
+  const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState('');
+
   // Load settings on mount
   useEffect(() => {
     loadSettings();
+    loadApiKey();
   }, []);
 
   const loadSettings = async () => {
@@ -38,6 +46,47 @@ export default function Settings() {
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
+    }
+  };
+
+  const loadApiKey = async () => {
+    try {
+      const key = await invoke<string | null>('get_api_key');
+      if (key) {
+        setApiKey(key);
+      }
+    } catch (error) {
+      console.error('Failed to load API key:', error);
+    }
+  };
+
+  const saveApiKey = async () => {
+    if (!apiKey.trim()) {
+      setApiKeyError('Veuillez entrer une clé API valide');
+      return;
+    }
+
+    if (!apiKey.startsWith('RGAPI-')) {
+      setApiKeyError('La clé API doit commencer par "RGAPI-"');
+      return;
+    }
+
+    try {
+      setApiKeyLoading(true);
+      setApiKeyError('');
+
+      await invoke('set_api_key', { apiKey: apiKey.trim() });
+
+      setApiKeySaved(true);
+      setTimeout(() => setApiKeySaved(false), 3000);
+
+      // Reload the page to reinitialize the API client
+      window.location.reload();
+    } catch (error) {
+      setApiKeyError(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde');
+      console.error('Failed to save API key:', error);
+    } finally {
+      setApiKeyLoading(false);
     }
   };
 
@@ -81,6 +130,90 @@ export default function Settings() {
         <p className="text-gray-400 text-sm">
           Configurez Galpha selon vos préférences
         </p>
+      </div>
+
+      {/* Riot API Key Section */}
+      <div className="bg-gradient-to-br from-base-dark to-base-darker rounded-2xl border border-base-medium p-6 shadow-lg">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
+            <span className="text-2xl">🔑</span>
+          </div>
+          <h2 className="text-xl font-bold text-white">
+            Clé API Riot Games
+          </h2>
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-gray-400 text-sm">
+            Votre clé API Riot Games est nécessaire pour récupérer vos statistiques de jeu.
+            {' '}
+            <a
+              href="https://developer.riotgames.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-primary hover:text-accent-secondary transition-colors underline"
+            >
+              Obtenez votre clé ici
+            </a>
+          </p>
+
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                className="flex-1 bg-base-darker border border-base-light rounded-lg px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-accent-primary transition-colors font-mono text-sm"
+              />
+              <button
+                onClick={saveApiKey}
+                disabled={apiKeyLoading || !apiKey.trim()}
+                className="px-6 py-3 bg-gradient-to-r from-accent-primary to-accent-tertiary text-white font-semibold rounded-lg hover:shadow-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {apiKeyLoading ? 'Sauvegarde...' : 'Sauvegarder'}
+              </button>
+            </div>
+
+            {apiKeyError && (
+              <div className="flex items-start gap-2 p-3 bg-red-900/20 border border-red-600/30 rounded-lg">
+                <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-red-300">{apiKeyError}</p>
+              </div>
+            )}
+
+            {apiKeySaved && (
+              <div className="flex items-center gap-2 p-3 bg-green-900/20 border border-green-600/30 rounded-lg">
+                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-sm text-green-300 font-semibold">Clé API sauvegardée avec succès!</p>
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 bg-blue-900/20 border border-blue-600/30 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="text-sm text-blue-200/80">
+                <p className="font-semibold text-blue-300 mb-1">Comment obtenir votre clé API?</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Visitez le portail développeur Riot Games</li>
+                  <li>Connectez-vous avec votre compte League of Legends</li>
+                  <li>Copiez votre "Development API Key"</li>
+                  <li>Collez-la dans le champ ci-dessus</li>
+                </ol>
+                <p className="mt-2 text-xs">
+                  ⚠️ Les clés de développement expirent toutes les 24h. Vous devrez la renouveler quotidiennement.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Recording Settings */}

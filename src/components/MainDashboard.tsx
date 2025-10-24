@@ -15,9 +15,10 @@ interface MainDashboardProps {
   currentSummoner: Summoner | null;
   isLoadingSummoner?: boolean;
   discordUser?: DiscordUser | null;
+  apiError?: string | null;
 }
 
-export default function MainDashboard({ isLolRunning, currentSummoner }: MainDashboardProps) {
+export default function MainDashboard({ isLolRunning, currentSummoner, apiError }: MainDashboardProps) {
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedAccount, setSelectedAccount] = useState<SavedAccount | null>(null);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
@@ -515,6 +516,33 @@ export default function MainDashboard({ isLolRunning, currentSummoner }: MainDas
           <Settings />
         ) : (
           <div className="pb-8">
+        {/* API Key Warning Banner */}
+        {apiError && apiError.includes('not configured') && (
+          <div className="max-w-[1600px] mx-auto px-8 py-4">
+            <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/40 rounded-xl p-4 shadow-lg">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-yellow-200 font-bold text-lg mb-1">Clé API Riot Games manquante</h3>
+                  <p className="text-yellow-100/80 text-sm mb-3">
+                    Votre clé API n'est pas configurée. Les statistiques ne pourront pas être chargées tant que vous n'aurez pas ajouté votre clé API.
+                  </p>
+                  <button
+                    onClick={() => setCurrentView('settings')}
+                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-semibold rounded-lg transition-colors shadow-lg"
+                  >
+                    Configurer la clé API →
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Hero Section - Summoner Info */}
         <div className="relative bg-gradient-to-br from-base-dark via-base-darker to-base-black border-b border-base-medium shadow-2xl overflow-hidden">
           {/* Background Image - Use most played champion or default */}
